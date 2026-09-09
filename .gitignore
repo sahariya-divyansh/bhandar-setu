@@ -3,7 +3,7 @@ node_modules/
 .pnpm-store/
 .yarn/
 
-# Python
+# Python & Databases
 __pycache__/
 *.py[cod]
 *$py.class
@@ -32,6 +32,9 @@ wheels/
 .coverage
 htmlcov/
 .ipynb_checkpoints
+*.db
+*.sqlite
+*.sqlite3
 
 # Vite & Frontend build
 frontend/dist/
