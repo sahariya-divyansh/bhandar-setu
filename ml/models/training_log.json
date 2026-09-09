@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-09-09T20:03:03.234477",
+  "data_range": {
+    "min": "2025-03-01",
+    "max": "2026-07-26"
+  },
+  "train_samples": 196350,
+  "test_samples": 26160,
+  "baseline_mae": 32.8355,
+  "ml_mae": 14.0375,
+  "mae_improvement_pct": 57.25,
+  "features": [
+    "bed_capacity",
+    "day_of_week",
+    "month",
+    "is_monsoon",
+    "is_winter",
+    "rolling_7d_dispensed",
+    "rolling_30d_dispensed",
+    "fever_cases",
+    "diarrhoea_cases",
+    "respiratory_cases",
+    "maternal_cases",
+    "medicine_encoded"
+  ]
+}

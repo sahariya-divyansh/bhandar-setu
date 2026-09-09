@@ -1,13 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
+from app.schemas import HealthCheckResponse
+from app.routers import facilities, inventory, forecast
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="API for predicting medicine stock-outs and recommending cross-facility redistribution across PHCs.",
+    description="Production-grade API for predicting medicine stock-outs and recommending cross-facility redistribution across PHCs.",
 )
 
+# CORS Middleware configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,22 +19,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include Subsystem Routers
+app.include_router(facilities.router, prefix=settings.API_V1_STR)
+app.include_router(inventory.router, prefix=settings.API_V1_STR)
+app.include_router(forecast.router, prefix=settings.API_V1_STR)
 
-@app.get("/health", tags=["Health Check"])
+
+@app.get("/health", response_model=HealthCheckResponse, tags=["Health Check"])
 async def health_check():
-    return {
-        "status": "healthy",
-        "service": settings.PROJECT_NAME,
-        "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT,
-    }
-
-
-@app.get(f"{settings.API_V1_STR}/summary", tags=["Dashboard Summary"])
-async def get_dashboard_summary():
-    return {
-        "total_phcs": 142,
-        "predicted_stockouts_30d": 18,
-        "active_redistributions": 7,
-        "essential_medicines_monitored": 54,
-    }
+    """System health status check."""
+    return HealthCheckResponse(
+        status="healthy",
+        service=settings.PROJECT_NAME,
+        version=settings.VERSION,
+        environment=settings.ENVIRONMENT,
+    )
