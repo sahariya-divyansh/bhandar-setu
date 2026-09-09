@@ -2,12 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.schemas import HealthCheckResponse
-from app.routers import facilities, inventory, forecast
+from app.routers import facilities, inventory, forecast, redistribution, insights
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Production-grade API for predicting medicine stock-outs and recommending cross-facility redistribution across PHCs.",
+    description="Production-grade API for predicting medicine stock-outs, recommending cross-facility redistribution, and providing GenAI clinical logistics insights.",
 )
 
 # CORS Middleware configuration
@@ -23,6 +23,8 @@ app.add_middleware(
 app.include_router(facilities.router, prefix=settings.API_V1_STR)
 app.include_router(inventory.router, prefix=settings.API_V1_STR)
 app.include_router(forecast.router, prefix=settings.API_V1_STR)
+app.include_router(redistribution.router, prefix=settings.API_V1_STR)
+app.include_router(insights.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", response_model=HealthCheckResponse, tags=["Health Check"])

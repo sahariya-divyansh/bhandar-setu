@@ -82,6 +82,56 @@ class RiskSummaryResponse(BaseModel):
     items: List[ForecastResponse]
 
 
+class RedistributionRecommendationResponse(BaseModel):
+    source_facility_id: str
+    source_facility_name: str
+    source_district: str
+    source_state: str
+    source_current_stock: int
+    source_surplus_available: int
+    destination_facility_id: str
+    destination_facility_name: str
+    destination_district: str
+    destination_state: str
+    destination_current_stock: int
+    days_of_stock_remaining: float
+    medicine_id: str
+    medicine_name: str
+    unit: str
+    suggested_quantity: int
+    distance_km: float
+    estimated_transit_days: int
+    shortage_avoided_days: float
+    urgency: str
+    status: str
+
+
+class RedistributionListResponse(BaseModel):
+    total_recommendations: int
+    items: List[RedistributionRecommendationResponse]
+
+
+class AlertExplanationResponse(BaseModel):
+    facility_id: str
+    medicine_id: str
+    explanation: str
+
+
+class OfficerBriefingResponse(BaseModel):
+    district: str
+    briefing: str
+
+
+class TranslateRequest(BaseModel):
+    text: str
+    target_language: str = "hi"
+
+
+class TranslateResponse(BaseModel):
+    target_language: str
+    translated_text: str
+
+
 class HealthCheckResponse(BaseModel):
     status: str
     service: str
