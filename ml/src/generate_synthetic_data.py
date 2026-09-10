@@ -31,6 +31,10 @@ Data Generation Methodology & Calibration:
      to simulate real-world NRHM/e-Aushadhi telemetry latency.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend"))
+
 import math
 import random
 from datetime import date, timedelta

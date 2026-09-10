@@ -18,6 +18,10 @@ achieves significantly superior forecasting accuracy (lower MAE) by leveraging t
 compared to relying exclusively on its local sparse dataset.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend"))
+
 import json
 import logging
 import sqlite3

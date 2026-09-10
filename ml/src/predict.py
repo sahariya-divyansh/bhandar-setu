@@ -3,6 +3,10 @@
 Provides single-facility prediction and district-wide risk ranking.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend"))
+
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional

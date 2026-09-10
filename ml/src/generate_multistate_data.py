@@ -6,6 +6,11 @@ Generates realistic health facility inventory and disease surveillance telemetry
 - Rajasthan (RJ): 15 facilities (3 months history — simulates newly onboarded low-data node for federated learning demo)
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+
 import random
 from datetime import date, timedelta
 from typing import List, Dict

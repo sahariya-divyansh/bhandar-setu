@@ -4,6 +4,10 @@ Trains baseline moving average and machine learning (RandomForestRegressor) mode
 to predict next-14-day medicine consumption per facility-medicine pair.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend"))
+
 import json
 import logging
 import sqlite3
