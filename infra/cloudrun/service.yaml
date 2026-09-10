@@ -2,13 +2,22 @@ apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
   name: bhandar-setu-backend
+  labels:
+    cloud.googleapis.com/location: asia-south1
   annotations:
     run.googleapis.com/ingress: all
+    run.googleapis.com/minScale: "0"
+    run.googleapis.com/maxScale: "3"
 spec:
   template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "3"
     spec:
+      containerConcurrency: 80
       containers:
-        - image: gcr.io/bhandar-setu-prod/backend:latest
+        - image: asia-south1-docker.pkg.dev/bhandar-setu-prod/bhandar-setu-repo/backend:latest
           resources:
             limits:
               cpu: 1000m
@@ -16,3 +25,18 @@ spec:
           env:
             - name: ENVIRONMENT
               value: "production"
+            - name: ALLOWED_ORIGINS
+              value: "https://bhandar-setu.web.app,https://bhandar-setu.firebaseapp.app,http://localhost:5173"
+            # In production, bind sensitive secrets via GCP Secret Manager:
+            # - name: GEMINI_API_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: gemini-api-key
+            #       key: latest
+            # - name: DATABASE_URL
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: database-url
+            #       key: latest
+          ports:
+            - containerPort: 8080

@@ -1,8 +1,11 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.schemas import HealthCheckResponse
 from app.routers import facilities, inventory, forecast, redistribution, insights, federation
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -10,12 +13,24 @@ app = FastAPI(
     description="Production-grade API for predicting medicine stock-outs, recommending cross-facility redistribution, and providing GenAI clinical logistics insights.",
 )
 
-# CORS Middleware configuration
+
+@app.on_event("startup")
+def startup_event():
+    if not settings.GEMINI_API_KEY:
+        if settings.ENVIRONMENT == "production":
+            logger.error("CRITICAL: GEMINI_API_KEY environment variable is not set! GenAI features will fallback to deterministic rules.")
+        else:
+            logger.warning("GEMINI_API_KEY is not set. GenAI insights will use fallback responses during local development.")
+    else:
+        logger.info("GEMINI_API_KEY successfully loaded from environment.")
+
+
+# Strict CORS Middleware configuration (restricted allowed origins, no wildcard)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 

@@ -11,7 +11,10 @@ import {
   FederationStatusResponse,
 } from './types';
 
-const API_BASE = '/api/v1';
+const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const API_BASE = rawBaseUrl
+  ? (rawBaseUrl.endsWith('/api/v1') ? rawBaseUrl : `${rawBaseUrl.replace(/\/$/, '')}/api/v1`)
+  : '/api/v1';
 
 async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
