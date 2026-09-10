@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Building2, Globe, RefreshCw, ShieldAlert, Network, Lock } from 'lucide-react';
 import { api } from '../api/client';
 import { ForecastResponse, RiskSummaryResponse, FederationStatusResponse } from '../api/types';
+import { DashboardSkeleton } from '../components/SkeletonComponents';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +12,15 @@ export const Dashboard: React.FC = () => {
   const [selectedState, setSelectedState] = useState<string>('Madhya Pradesh');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('Sehore');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedQuery, setDebouncedQuery] = useState<string>('');
+
+  // 300ms search input debouncing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Data states
   const [riskSummary, setRiskSummary] = useState<RiskSummaryResponse | null>(null);
@@ -71,15 +81,17 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Filtered items
-  const filteredItems = (riskSummary?.items || []).filter((item: ForecastResponse) => {
-    const query = searchQuery.toLowerCase();
-    return (
+  // Memoized client-side list filtering
+  const filteredItems = useMemo(() => {
+    const items = riskSummary?.items || [];
+    if (!debouncedQuery.trim()) return items;
+    const query = debouncedQuery.toLowerCase();
+    return items.filter((item: ForecastResponse) => (
       item.facility_name.toLowerCase().includes(query) ||
       item.medicine_name.toLowerCase().includes(query) ||
       item.facility_id.toLowerCase().includes(query)
-    );
-  });
+    ));
+  }, [riskSummary, debouncedQuery]);
 
   return (
     <div>
@@ -244,10 +256,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="loading-spinner">
-            <RefreshCw className="animate-spin" size={20} />
-            Fetching stock-out risk matrix...
-          </div>
+          <DashboardSkeleton />
         ) : filteredItems.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
             No stock-out risks matching criteria.

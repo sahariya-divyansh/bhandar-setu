@@ -36,3 +36,8 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# Ensure tables and indexes exist on module load
+init_db()
+

@@ -129,6 +129,10 @@ class StaffAttendance(Base):
     # Relationships
     facility = relationship("Facility", back_populates="staff_attendance")
 
+    __table_args__ = (
+        Index("idx_staff_attendance_facility_date", "facility_id", "date"),
+    )
+
     def __repr__(self):
         return f"<StaffAttendance(facility='{self.facility_id}', role='{self.staff_role}', date='{self.date}')>"
 
@@ -151,6 +155,11 @@ class Delivery(Base):
     source_facility = relationship("Facility", foreign_keys=[source_facility_id], back_populates="outbound_deliveries")
     destination_facility = relationship("Facility", foreign_keys=[destination_facility_id], back_populates="inbound_deliveries")
     medicine = relationship("MedicineCatalog", back_populates="deliveries")
+
+    __table_args__ = (
+        Index("idx_deliveries_dest_status", "destination_facility_id", "status"),
+        Index("idx_deliveries_source_status", "source_facility_id", "status"),
+    )
 
     def __repr__(self):
         return f"<Delivery(id='{self.delivery_id}', dest='{self.destination_facility_id}', medicine='{self.medicine_id}', status='{self.status}')>"

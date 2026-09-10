@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, RefreshCw, Truck, ArrowRight } from 'lucide-react';
 import { api } from '../api/client';
 import { RedistributionRecommendation } from '../api/types';
+import { RedistributionSkeleton } from '../components/SkeletonComponents';
 
 export const RedistributionPlanner: React.FC = () => {
   const [selectedDistrict, setSelectedDistrict] = useState<string>('Sehore');
@@ -97,10 +98,7 @@ export const RedistributionPlanner: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="loading-spinner">
-            <RefreshCw className="animate-spin" size={20} />
-            Calculating optimal transfer routes...
-          </div>
+          <RedistributionSkeleton />
         ) : recommendations.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             No redistribution recommendations generated for current district selection.

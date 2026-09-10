@@ -13,7 +13,7 @@ ml_dir = root_dir / "ml"
 if str(ml_dir) not in sys.path:
     sys.path.insert(0, str(ml_dir))
 
-from ml.src.predict import predict_facility_medicine, calculate_risk_band
+from ml.src.predict import predict_facility_medicine, rank_stockout_risks, calculate_risk_band
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -72,27 +72,33 @@ def recommend_redistributions(
     med_rows = db.execute(text("SELECT medicine_id, medicine_name, unit, minimum_stock_days FROM medicine_catalog")).fetchall()
     medicines_map = {row[0]: {"medicine_name": row[1], "unit": row[2], "min_days": row[3]} for row in med_rows}
 
-    # 3. Evaluate stock status for all facility-medicine combinations
-    evaluations: List[Dict] = []
-    for fid in facilities_map:
-        for mid in medicines_map:
-            try:
-                pred = predict_facility_medicine(fid, mid, db)
-                evaluations.append(pred)
-            except Exception:
-                continue
+    # 3. Evaluate stock status using batched vectorized risk engine (4 bulk queries vs 3900 queries)
+    evaluations = rank_stockout_risks(db, state=state, district=district)
 
     # Split into Deficits (risk band red/orange) and Potential Donors (days remaining > 21)
     deficits = [e for e in evaluations if e["risk_band"] in ["red", "orange"]]
     donors = [e for e in evaluations if e["days_of_stock_remaining"] > 21.0]
+
+    # Hash table indexing: Group candidate donors by medicine_id for O(1) lookup
+    # Algorithmic Complexity:
+    # - Naive pairwise scan: O(N_deficits * N_donors_total)
+    # - Hash-indexed scan: O(N_deficits * N_donors_per_medicine)
+    # At N=65-100 facilities, N_donors_per_medicine <= 20, making exact Haversine calculation run in <1 ms.
+    # A spatial KD-Tree/BallTree is not required as spatial construction overhead outweighs linear scan over 20 points.
+    donors_by_medicine: Dict[str, List[Dict]] = {}
+    for d in donors:
+        donors_by_medicine.setdefault(d["medicine_id"], []).append(d)
 
     recommendations = []
 
     for def_item in deficits:
         dest_fid = def_item["facility_id"]
         med_id = def_item["medicine_id"]
-        dest_info = facilities_map[dest_fid]
-        med_info = medicines_map[med_id]
+        dest_info = facilities_map.get(dest_fid)
+        med_info = medicines_map.get(med_id)
+
+        if not dest_info or not med_info:
+            continue
 
         dest_stock = def_item["current_stock"]
         dest_daily_cons = def_item["avg_daily_consumption"]
@@ -102,10 +108,10 @@ def recommend_redistributions(
         target_buffer = max(1, int(30 * dest_daily_cons))
         needed_qty = max(10, target_buffer - dest_stock)
 
-        # Search for potential donor facilities with surplus of the exact same medicine
+        # O(1) lookup of candidate donors for the exact medicine
         candidate_donors = [
-            d for d in donors
-            if d["medicine_id"] == med_id and d["facility_id"] != dest_fid
+            d for d in donors_by_medicine.get(med_id, [])
+            if d["facility_id"] != dest_fid
         ]
 
         best_donor = None

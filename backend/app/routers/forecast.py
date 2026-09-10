@@ -15,18 +15,29 @@ if str(ml_dir) not in sys.path:
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+import logging
+import time
+from app.services.cache_service import ttl_cache
+
+logger = logging.getLogger(__name__)
+
 from ml.src.predict import predict_facility_medicine, rank_stockout_risks
 
 router = APIRouter(prefix="/forecast", tags=["Forecasting & Risk Engine"])
 
 
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+
 @router.get("/risk-summary", response_model=RiskSummaryResponse)
+@ttl_cache(ttl_seconds=300)
 def get_risk_summary(
     state: Optional[str] = Query(None, description="Filter stock-out risks by State"),
     district: Optional[str] = Query(None, description="Filter stock-out risks by District"),
     db: Session = Depends(get_db),
 ):
     """Retrieve district-wide ranked list of facility-medicine pairs ordered by stock-out risk."""
+    t0 = time.perf_counter()
     try:
         ranked_items = rank_stockout_risks(db, state=state, district=district)
         
@@ -35,12 +46,16 @@ def get_risk_summary(
 
         forecast_responses = [ForecastResponse(**item) for item in ranked_items]
 
-        return RiskSummaryResponse(
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        logger.info(f"[/forecast/risk-summary] Executed in {elapsed_ms:.2f} ms for state='{state}', district='{district}'")
+
+        res_obj = RiskSummaryResponse(
             total_facilities_monitored=unique_facilities,
             high_risk_count=high_risk_count,
             total_items_evaluated=len(ranked_items),
             items=forecast_responses,
         )
+        return JSONResponse(content=jsonable_encoder(res_obj))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating stock-out risk summary: {str(e)}")
 

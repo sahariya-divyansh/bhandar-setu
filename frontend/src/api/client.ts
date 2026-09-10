@@ -16,7 +16,24 @@ const API_BASE = rawBaseUrl
   ? (rawBaseUrl.endsWith('/api/v1') ? rawBaseUrl : `${rawBaseUrl.replace(/\/$/, '')}/api/v1`)
   : '/api/v1';
 
-async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
+interface CacheEntry<T> {
+  data: T;
+  expiry: number;
+}
+
+const clientCache = new Map<string, CacheEntry<any>>();
+
+async function fetchJSON<T>(endpoint: string, options?: RequestInit, useCache = false, ttlMs = 180000): Promise<T> {
+  const method = options?.method?.toUpperCase() || 'GET';
+  const cacheKey = `${method}:${endpoint}`;
+
+  if (useCache && method === 'GET') {
+    const cached = clientCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) {
+      return cached.data;
+    }
+  }
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
@@ -38,7 +55,11 @@ async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T>
     throw new Error(errorMessage);
   }
 
-  return response.json();
+  const data = await response.json();
+  if (useCache && method === 'GET') {
+    clientCache.set(cacheKey, { data, expiry: Date.now() + ttlMs });
+  }
+  return data;
 }
 
 export const api = {
@@ -48,25 +69,25 @@ export const api = {
     if (state) params.append('state', state);
     if (district) params.append('district', district);
     const query = params.toString() ? `?${params.toString()}` : '';
-    return fetchJSON<Facility[]>(`/facilities${query}`);
+    return fetchJSON<Facility[]>(`/facilities${query}`, undefined, true);
   },
 
   getFacilityById: (facilityId: string): Promise<Facility> => {
-    return fetchJSON<Facility>(`/facilities/${facilityId}`);
+    return fetchJSON<Facility>(`/facilities/${facilityId}`, undefined, true);
   },
 
   // Inventory
   getFacilityInventory: (facilityId: string): Promise<InventoryItem[]> => {
-    return fetchJSON<InventoryItem[]>(`/inventory/${facilityId}`);
+    return fetchJSON<InventoryItem[]>(`/inventory/${facilityId}`, undefined, true);
   },
 
   getInventoryHistory: (facilityId: string, medicineId: string, limit = 30): Promise<InventoryHistoryItem[]> => {
-    return fetchJSON<InventoryHistoryItem[]>(`/inventory/${facilityId}/${medicineId}/history?limit=${limit}`);
+    return fetchJSON<InventoryHistoryItem[]>(`/inventory/${facilityId}/${medicineId}/history?limit=${limit}`, undefined, true);
   },
 
   // Forecasting & Risk Engine
   getForecast: (facilityId: string, medicineId: string): Promise<ForecastResponse> => {
-    return fetchJSON<ForecastResponse>(`/forecast/${facilityId}/${medicineId}`);
+    return fetchJSON<ForecastResponse>(`/forecast/${facilityId}/${medicineId}`, undefined, true);
   },
 
   getRiskSummary: (state?: string, district?: string): Promise<RiskSummaryResponse> => {
@@ -74,7 +95,7 @@ export const api = {
     if (state) params.append('state', state);
     if (district) params.append('district', district);
     const query = params.toString() ? `?${params.toString()}` : '';
-    return fetchJSON<RiskSummaryResponse>(`/forecast/risk-summary${query}`);
+    return fetchJSON<RiskSummaryResponse>(`/forecast/risk-summary${query}`, undefined, true);
   },
 
   // Redistribution
@@ -83,16 +104,16 @@ export const api = {
     if (state) params.append('state', state);
     if (district) params.append('district', district);
     const query = params.toString() ? `?${params.toString()}` : '';
-    return fetchJSON<RedistributionListResponse>(`/redistribution/recommendations${query}`);
+    return fetchJSON<RedistributionListResponse>(`/redistribution/recommendations${query}`, undefined, true);
   },
 
   // GenAI Insights
   getAlertExplanation: (facilityId: string, medicineId: string): Promise<AlertExplanationResponse> => {
-    return fetchJSON<AlertExplanationResponse>(`/insights/alert-explanation/${facilityId}/${medicineId}`);
+    return fetchJSON<AlertExplanationResponse>(`/insights/alert-explanation/${facilityId}/${medicineId}`, undefined, true);
   },
 
   getOfficerBriefing: (district: string): Promise<OfficerBriefingResponse> => {
-    return fetchJSON<OfficerBriefingResponse>(`/insights/officer-briefing?district=${encodeURIComponent(district)}`);
+    return fetchJSON<OfficerBriefingResponse>(`/insights/officer-briefing?district=${encodeURIComponent(district)}`, undefined, true);
   },
 
   translateText: (text: string, targetLanguage = 'hi'): Promise<TranslateResponse> => {

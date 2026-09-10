@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle, Globe, Pill, RefreshCw, LineChart as ChartIcon } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { api } from '../api/client';
 import { Facility, InventoryItem, InventoryHistoryItem, ForecastResponse } from '../api/types';
+import { FacilityDetailSkeleton } from '../components/SkeletonComponents';
 
 export const FacilityDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -98,13 +99,17 @@ export const FacilityDetail: React.FC = () => {
     }
   };
 
+  // Format Recharts data memoized
+  const chartData = useMemo(() => {
+    return history.map((item) => ({
+      date: item.date,
+      dispensed: item.dispensed_quantity,
+      closing: item.closing_stock,
+    }));
+  }, [history]);
+
   if (loading) {
-    return (
-      <div className="loading-spinner">
-        <RefreshCw className="animate-spin" size={24} />
-        Loading facility dashboard...
-      </div>
-    );
+    return <FacilityDetailSkeleton />;
   }
 
   if (error || !facility) {

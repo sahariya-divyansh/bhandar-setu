@@ -16,6 +16,12 @@ ml_dir = root_dir / "ml"
 if str(ml_dir) not in sys.path:
     sys.path.insert(0, str(ml_dir))
 
+import logging
+import time
+from app.services.cache_service import ttl_cache, gemini_cache
+
+logger = logging.getLogger(__name__)
+
 from ml.src.predict import predict_facility_medicine, rank_stockout_risks
 from app.services.redistribution import recommend_redistributions
 from app.services import gemini_service
@@ -24,8 +30,10 @@ router = APIRouter(prefix="/insights", tags=["GenAI Insights Core"])
 
 
 @router.get("/alert-explanation/{facility_id}/{medicine_id}", response_model=AlertExplanationResponse)
+@ttl_cache(ttl_seconds=180, cache_instance=gemini_cache)
 def get_alert_explanation(facility_id: str, medicine_id: str, db: Session = Depends(get_db)):
     """Generate plain-language clinical explanation of WHY a stock-out risk was flagged for a facility-medicine pair."""
+    t0 = time.perf_counter()
     try:
         forecast_data = predict_facility_medicine(facility_id, medicine_id, db)
         explanation = gemini_service.explain_risk_alert(
@@ -33,6 +41,8 @@ def get_alert_explanation(facility_id: str, medicine_id: str, db: Session = Depe
             medicine_name=forecast_data["medicine_name"],
             forecast_data=forecast_data,
         )
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        logger.info(f"[/insights/alert-explanation] Executed in {elapsed_ms:.2f} ms for facility='{facility_id}', medicine='{medicine_id}'")
         return AlertExplanationResponse(
             facility_id=facility_id,
             medicine_id=medicine_id,
@@ -45,11 +55,13 @@ def get_alert_explanation(facility_id: str, medicine_id: str, db: Session = Depe
 
 
 @router.get("/officer-briefing", response_model=OfficerBriefingResponse)
+@ttl_cache(ttl_seconds=180, cache_instance=gemini_cache)
 def get_officer_briefing(
     district: str = Query(..., description="Target District name for executive briefing"),
     db: Session = Depends(get_db),
 ):
     """Generate a concise executive briefing for District Health Officers (DHO) summarizing top risks and transfers."""
+    t0 = time.perf_counter()
     try:
         risk_summary_items = rank_stockout_risks(db, district=district)
         high_risk_count = sum(1 for item in risk_summary_items if item["risk_band"] in ["red", "orange"])
@@ -67,6 +79,9 @@ def get_officer_briefing(
             risk_summary=risk_summary_data,
             recommendations=recs,
         )
+
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        logger.info(f"[/insights/officer-briefing] Executed in {elapsed_ms:.2f} ms for district='{district}'")
 
         return OfficerBriefingResponse(
             district=district,

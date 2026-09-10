@@ -364,3 +364,21 @@ body {
   white-space: pre-wrap;
   color: #e2e8f0;
 }
+
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.skeleton-box {
+  background-color: var(--panel-border);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
