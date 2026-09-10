@@ -128,3 +128,53 @@ erDiagram
 4. **`patient_visits`**: Clinical epidemiological surveillance logs recording disease-specific outpatient surges (diarrhoea, respiratory, fever).
 5. **`staff_attendance`**: Healthcare worker staffing telemetry monitoring clinical capacity and operational status.
 6. **`deliveries`**: Multi-echelon stock dispatch tracking for inter-facility redistribution and district warehouse supply pipelines.
+
+---
+
+## 5. Federated Learning Design & Privacy Engineering
+
+In India's public health system, raw health facility inventory and patient clinical data are governed by strict state health data sovereignty policies (State Health Data Registries). Raw telemetry cannot be transferred out of state boundaries without explicit inter-state regulatory protocols.
+
+### Architectural Blueprint
+
+Bhandar Setu implements a **Federated Learning (FedAvg / Ensemble Aggregation)** architecture to facilitate cross-state collaborative forecasting without centralizing raw health data:
+
+```
+┌─────────────────────────────────┐       ┌─────────────────────────────────┐
+│     State Node: Madhya Pradesh  │       │     State Node: Chhattisgarh    │
+│  (30 Facilities / 18m History)  │       │  (20 Facilities / 18m History)  │
+│  [Local DB] ──► [Local RF Model] │       │  [Local DB] ──► [Local RF Model] │
+└────────────────┬────────────────┘       └────────────────┬────────────────┘
+                 │ (Model Parameters Only)                 │ (Model Parameters Only)
+                 └────────────────► ┌─────────────┐ ◄──────┘
+                                    │ Central FL  │
+                                    │ Aggregator  │
+                                    └──────┬──────┘
+                                           │ (Global Model Ensemble Prior)
+                                           ▼
+                           ┌─────────────────────────────────┐
+                           │      State Node: Rajasthan      │
+                           │ (Newly Onboarded / 3m History) │
+                           │  [Sparse Data + Global Prior]   │
+                           │  MAE: 13.82 ──► 8.57 (-38% MAE) │
+                           └─────────────────────────────────┘
+```
+
+### Protocol & Privacy Principles
+
+1. **State-Level Data Boundaries**:
+   - Each state node (Madhya Pradesh, Chhattisgarh, Rajasthan) executes training independently over locally residing databases (`bhandar_setu.db`).
+   - Zero raw patient visit records or stock dispensation logs cross state network boundaries.
+
+2. **Federated Parameter Aggregation**:
+   - Local state nodes generate parameter weights and decision tree structures.
+   - The central aggregator node performs **Federated Averaging (FedAvg)** to assemble a unified Global Prior Model.
+
+3. **Data-Sparsity Uplift (Cold-Start Node Optimization)**:
+   - Newly onboarded or low-telemetry state nodes (e.g., Rajasthan with sparse historical telemetry) experience an immediate accuracy improvement (**38.00% MAE reduction**, from 13.82 down to 8.57 units) by leveraging the global prior without waiting months to collect local telemetry.
+
+4. **Production Security Requirements (Future Scope)**:
+   - **Secure Aggregation (SecAgg)**: Cryptographic masking of state node parameter updates so the central server cannot inspect individual node weights.
+   - **Differential Privacy (DP)**: Adding calibrated Gaussian noise ($(\epsilon, \delta)$-DP) to gradient updates to prevent membership inference attacks.
+   - **Encrypted Transport**: TLS 1.3 mTLS tunnels for inter-node communication.
+

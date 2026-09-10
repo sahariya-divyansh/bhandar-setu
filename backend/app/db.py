@@ -1,10 +1,17 @@
 import os
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from app.models import Base
 
-# Default to SQLite for local development; easily overridden for PostgreSQL via DATABASE_URL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./bhandar_setu.db")
+# Default to SQLite for local development in backend/bhandar_setu.db; easily overridden for PostgreSQL via DATABASE_URL
+env_db_url = os.getenv("DATABASE_URL")
+if not env_db_url:
+    backend_dir = Path(__file__).resolve().parent.parent
+    db_file_path = backend_dir / "bhandar_setu.db"
+    DATABASE_URL = f"sqlite:///{db_file_path.as_posix()}"
+else:
+    DATABASE_URL = env_db_url
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 

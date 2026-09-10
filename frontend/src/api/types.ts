@@ -115,3 +115,22 @@ export interface TranslateResponse {
   target_language: string;
   translated_text: string;
 }
+
+export interface FederatedStateNode {
+  state: string;
+  facilities: number;
+  local_mae: number;
+  sample_count: number;
+  status: string;
+  data_depth?: string | null;
+}
+
+export interface FederationStatusResponse {
+  timestamp: string;
+  participating_states: FederatedStateNode[];
+  target_evaluation_node: string;
+  local_only_mae: number;
+  federated_aggregated_mae: number;
+  accuracy_improvement_pct: number;
+  privacy_boundary: string;
+}

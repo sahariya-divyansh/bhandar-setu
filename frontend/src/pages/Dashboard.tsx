@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Building2, Globe, RefreshCw, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Building2, Globe, RefreshCw, ShieldAlert, Network, Lock } from 'lucide-react';
 import { api } from '../api/client';
-import { ForecastResponse, RiskSummaryResponse } from '../api/types';
+import { ForecastResponse, RiskSummaryResponse, FederationStatusResponse } from '../api/types';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +17,7 @@ export const Dashboard: React.FC = () => {
   const [briefingText, setBriefingText] = useState<string>('');
   const [translatedBriefing, setTranslatedBriefing] = useState<string>('');
   const [redistributionCount, setRedistributionCount] = useState<number>(0);
+  const [federationStatus, setFederationStatus] = useState<FederationStatusResponse | null>(null);
 
   // UI state
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
@@ -29,16 +30,18 @@ export const Dashboard: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [summaryRes, briefingRes, recsRes] = await Promise.all([
+      const [summaryRes, briefingRes, recsRes, fedRes] = await Promise.all([
         api.getRiskSummary(selectedState, selectedDistrict === 'All' ? undefined : selectedDistrict),
         api.getOfficerBriefing(selectedDistrict === 'All' ? 'Sehore' : selectedDistrict),
         api.getRedistributionRecommendations(selectedState, selectedDistrict === 'All' ? undefined : selectedDistrict),
+        api.getFederationStatus().catch(() => null),
       ]);
 
       setRiskSummary(summaryRes);
       setBriefingText(briefingRes.briefing);
       setTranslatedBriefing(''); // Reset translated buffer on district change
       setRedistributionCount(recsRes.total_recommendations);
+      if (fedRes) setFederationStatus(fedRes);
     } catch (err: any) {
       setError(err.message || 'Failed to load dashboard metrics.');
     } finally {
@@ -187,6 +190,49 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Federated Learning Network Panel */}
+      {federationStatus && (
+        <div className="panel" style={{ borderLeft: '4px solid #3b82f6' }}>
+          <div className="panel-header" style={{ marginBottom: '1rem' }}>
+            <div className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Network size={20} style={{ color: '#3b82f6' }} />
+              Federated Collaborative Forecasting Network (FedAvg Cross-State Telemetry)
+            </div>
+            <span style={{ fontSize: '0.75rem', background: '#eff6ff', color: '#1d4ed8', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <Lock size={12} /> State Data Sovereignty Enforced
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+            {federationStatus.participating_states.map((node) => (
+              <div key={node.state} style={{ background: 'var(--bg-card, #f8fafc)', padding: '0.8rem 1rem', borderRadius: '8px', border: '1px solid var(--border, #e2e8f0)' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{node.state} Node</span>
+                  <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: node.state === 'Rajasthan' ? '#fef3c7' : '#dcfce7', color: node.state === 'Rajasthan' ? '#92400e' : '#166534', fontWeight: 600 }}>
+                    {node.status}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', marginTop: '0.3rem' }}>
+                  Facilities: {node.facilities} | Samples: {node.sample_count.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary, #2563eb)', marginTop: '0.2rem' }}>
+                  Local MAE: {node.local_mae} units
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: '#f0f9ff', padding: '0.8rem 1rem', borderRadius: '8px', border: '1px solid #bae6fd', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ fontSize: '0.85rem', color: '#0369a1' }}>
+              <strong>Evaluated Sparse Node (Rajasthan):</strong> Local-Only MAE: <strong>{federationStatus.local_only_mae} units</strong> &rarr; Global Federated MAE: <strong>{federationStatus.federated_aggregated_mae} units</strong>
+            </div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '0.3rem 0.8rem', borderRadius: '6px' }}>
+              +{federationStatus.accuracy_improvement_pct}% Forecasting Accuracy Lift
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stock-Out Risk Summary Table */}
       <div className="panel">

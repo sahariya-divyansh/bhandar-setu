@@ -8,6 +8,7 @@ import {
   AlertExplanationResponse,
   OfficerBriefingResponse,
   TranslateResponse,
+  FederationStatusResponse,
 } from './types';
 
 const API_BASE = '/api/v1';
@@ -96,5 +97,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ text, target_language: targetLanguage }),
     });
+  },
+
+  // Federated Learning Status
+  getFederationStatus: (): Promise<FederationStatusResponse> => {
+    return fetchJSON<FederationStatusResponse>('/federation/status');
   },
 };

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.schemas import HealthCheckResponse
-from app.routers import facilities, inventory, forecast, redistribution, insights
+from app.routers import facilities, inventory, forecast, redistribution, insights, federation
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -25,6 +25,7 @@ app.include_router(inventory.router, prefix=settings.API_V1_STR)
 app.include_router(forecast.router, prefix=settings.API_V1_STR)
 app.include_router(redistribution.router, prefix=settings.API_V1_STR)
 app.include_router(insights.router, prefix=settings.API_V1_STR)
+app.include_router(federation.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", response_model=HealthCheckResponse, tags=["Health Check"])

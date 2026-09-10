@@ -137,3 +137,23 @@ class HealthCheckResponse(BaseModel):
     service: str
     version: str
     environment: str
+
+
+class FederatedStateNode(BaseModel):
+    state: str
+    facilities: int
+    local_mae: float
+    sample_count: int
+    status: str
+    data_depth: Optional[str] = None
+
+
+class FederationStatusResponse(BaseModel):
+    timestamp: str
+    participating_states: List[FederatedStateNode]
+    target_evaluation_node: str
+    local_only_mae: float
+    federated_aggregated_mae: float
+    accuracy_improvement_pct: float
+    privacy_boundary: str
+

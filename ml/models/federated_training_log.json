@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-09-10T10:33:53.307889",
+  "participating_states": [
+    {
+      "state": "Madhya Pradesh",
+      "facilities": 30,
+      "local_mae": 0.65,
+      "sample_count": 196320,
+      "status": "Active State Node"
+    },
+    {
+      "state": "Chhattisgarh",
+      "facilities": 20,
+      "local_mae": 0.73,
+      "sample_count": 130455,
+      "status": "Active State Node"
+    },
+    {
+      "state": "Rajasthan",
+      "facilities": 15,
+      "local_mae": 13.82,
+      "data_depth": "Sparse Telemetry (Low-Data Node)",
+      "sample_count": 139,
+      "status": "Newly Onboarded Node"
+    }
+  ],
+  "target_evaluation_node": "Rajasthan",
+  "local_only_mae": 13.82,
+  "federated_aggregated_mae": 8.57,
+  "accuracy_improvement_pct": 38.0,
+  "privacy_boundary": "Zero raw data shared; aggregated parameter ensemble"
+}
